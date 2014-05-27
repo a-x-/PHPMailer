@@ -777,7 +777,7 @@ class PHPMailer
             }
             return false;
         }
-        if(!$this->processCheckAddressName($address,$name)) {
+        if (!$this->processCheckAddressName($address, $name)) {
             return false;
         }
         if ($kind != 'Reply-To') {
@@ -1471,6 +1471,26 @@ class PHPMailer
     }
 
     /**
+     * Crop part and word and recalculate length.
+     * @param $len
+     * @param $is_utf8
+     * @param $word
+     * @param $part
+     * @param $len
+     */
+    protected function cropPartWord($len, $is_utf8, &$word, &$part, &$len) {
+        if ($is_utf8) {
+            $len = $this->utf8CharBoundary($word, $len);
+        } elseif (substr($word, $len - 1, 1) == '=') {
+            $len--;
+        } elseif (substr($word, $len - 2, 1) == '=') {
+            $len -= 2;
+        }
+        $part = substr($word, 0, $len);
+        $word = substr($word, $len);
+    }
+
+    /**
      * Word-wrap message.
      * For use with mailers that do not automatically perform wrapping
      * and for quoted-printable encoded messages.
@@ -1495,22 +1515,6 @@ class PHPMailer
             $message = substr($message, 0, -$lelen);
         }
 
-        /*
-         * php 5.3 specific feature: lambda
-         */
-        $getPartWord  = function ($from) use ($is_utf8, &$word, &$part, &$len) {
-            $len = $from;// $space_left;
-            if ($is_utf8) {
-                $len = $this->utf8CharBoundary($word, $len);
-            } elseif (substr($word, $len - 1, 1) == '=') {
-                $len--;
-            } elseif (substr($word, $len - 2, 1) == '=') {
-                $len -= 2;
-            }
-            $part = substr($word, 0, $len);
-            $word = substr($word, $len);
-        };
-
         $line = explode($this->LE, $message); // Magic. We know fixEOL uses $LE
         $message = '';
         for ($i = 0; $i < count($line); $i++) {
@@ -1522,7 +1526,7 @@ class PHPMailer
                     $space_left = $length - strlen($buf) - $crlflen;
                     if ($e != 0) {
                         if ($space_left > 20) {
-                            $getPartWord($space_left);
+                            $this->cropPartWord($space_left, $is_utf8, $word, $part, $len);
                             $buf .= ' ' . $part;
                             $message .= $buf . sprintf('=%s', self::CRLF);
                         } else {
@@ -1534,7 +1538,7 @@ class PHPMailer
                         if ($length <= 0) {
                             break;
                         }
-                        $getPartWord($length);
+                        $this->cropPartWord($length, $is_utf8, $word, $part, $len);
 
                         if (strlen($word) > 0) {
                             $message .= $part . sprintf('=%s', self::CRLF);
