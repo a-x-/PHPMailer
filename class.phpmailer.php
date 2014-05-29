@@ -1474,11 +1474,12 @@ class PHPMailer
      * Crop part and word and recalculate length.
      * @param $len
      * @param $is_utf8
-     * @param $word
-     * @param $part
-     * @param $len
+     * @param &$word
+     * @param &$part
+     * @param &$len
      */
-    protected function cropPartWord($len, $is_utf8, &$word, &$part, &$len) {
+    protected function cropPartWord($len, $is_utf8, &$word, &$part, &$len)
+    {
         if ($is_utf8) {
             $len = $this->utf8CharBoundary($word, $len);
         } elseif (substr($word, $len - 1, 1) == '=') {
